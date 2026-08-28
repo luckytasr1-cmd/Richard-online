@@ -1,0 +1,42 @@
+name: Apply Richard logo
+
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-richard-logo.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-logo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch logo in index
+        shell: bash
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          replacement = '<img class="logoSvg" src="assets/richard-logo.jpg" alt="Richard Ferretería">'
+          s, n = re.subn(r'<svg class="logoSvg".*?</svg>', replacement, s, count=1, flags=re.S)
+          if n != 1:
+              raise SystemExit('No se encontró el SVG temporal del logo')
+          s = s.replace(
+              '.logoSvg{width:78px;height:78px;display:block}',
+              '.logoSvg{width:78px;height:78px;display:block;border-radius:50%;object-fit:cover;object-position:center;border:2px solid #111;background:#d17b4a}'
+          )
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit logo fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Use real Richard logo in header"
+          git push
